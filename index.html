@@ -276,6 +276,11 @@
             cursor: pointer;
         }
 
+        .settings-panel input[type=range] {
+            width: 100%;
+            accent-color: #ff0000;
+        }
+
         body.light .settings-panel {
             background: rgba(255, 255, 255, 0.98);
             border-color: rgba(15, 23, 42, 0.12);
@@ -448,7 +453,7 @@
         <header class="site-header">
             <div class="brand">Fitness Calculators</div>
             <nav>
-                <a href="calorie.index.html">Calories</a>
+                <a href="caloeie.index.html">Calories</a>
                 <a href="" class="active">Protein</a>
             </nav>
             <div class="settings-wrapper">
@@ -457,6 +462,9 @@
                     <button id="themeToggle" class="theme-toggle" type="button">Switch to Light</button>
                     <label class="color-picker-label">RGB
                         <input id="rgbColor" type="color" value="#ff0000">
+                    </label>
+                    <label class="color-picker-label">Glow
+                        <input id="rgbIntensity" type="range" min="20" max="200" value="120">
                     </label>
                 </div>
             </div>
@@ -523,11 +531,38 @@
         const resultBox = document.getElementById('result');
         const themeToggle = document.getElementById('themeToggle');
         const rgbColorInput = document.getElementById('rgbColor');
+        const rgbIntensityInput = document.getElementById('rgbIntensity');
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsPanel = document.getElementById('settingsPanel');
         const root = document.documentElement;
 
+        function hexToRgb(hex) {
+            const normalized = hex.replace('#', '');
+            const value = normalized.length === 3 ? normalized.split('').map(c => c + c).join('') : normalized;
+            return {
+                r: parseInt(value.slice(0, 2), 16),
+                g: parseInt(value.slice(2, 4), 16),
+                b: parseInt(value.slice(4, 6), 16)
+            };
+        }
+
+        function setRgb(value, intensity = 120) {
+            const { r, g, b } = hexToRgb(value);
+            const alpha = Math.max(0.15, Math.min(intensity / 200, 1));
+            const rgba = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            root.style.setProperty('--rgb', `radial-gradient(circle, ${rgba} 0%, ${rgba} 25%, rgba(255,255,255,0.40) 45%, transparent 85%)`);
+            root.style.setProperty('--rgb-color', rgba);
+        }
+
         function setRgbColor(value) {
-            root.style.setProperty('--rgb', `radial-gradient(circle, ${value} 0%, ${value} 25%, rgba(255,255,255,0.40) 45%, transparent 85%)`);
-            root.style.setProperty('--rgb-color', value);
+            localStorage.setItem('rgbColor', value);
+            setRgb(value, parseInt(rgbIntensityInput.value, 10));
+        }
+
+        function setRgbIntensity(intensity) {
+            rgbIntensityInput.value = intensity;
+            localStorage.setItem('rgbIntensity', intensity);
+            setRgb(rgbColorInput.value, parseInt(intensity, 10));
         }
 
         function setTheme(mode) {
@@ -542,9 +577,6 @@
             setTheme(nextTheme);
         }
 
-        const settingsToggle = document.getElementById('settingsToggle');
-        const settingsPanel = document.getElementById('settingsPanel');
-
         function toggleSettings() {
             const isOpen = settingsPanel.hasAttribute('hidden');
             if (isOpen) {
@@ -558,6 +590,7 @@
 
         themeToggle.addEventListener('click', toggleTheme);
         rgbColorInput.addEventListener('input', (event) => setRgbColor(event.target.value));
+        rgbIntensityInput.addEventListener('input', (event) => setRgbIntensity(event.target.value));
         settingsToggle.addEventListener('click', toggleSettings);
 
         document.addEventListener('click', (event) => {
@@ -568,7 +601,11 @@
         });
 
         const savedTheme = localStorage.getItem('theme') || 'dark';
-        setRgbColor(rgbColorInput.value);
+        const savedColor = localStorage.getItem('rgbColor') || '#ff0000';
+        const savedIntensity = localStorage.getItem('rgbIntensity') || '120';
+        rgbColorInput.value = savedColor;
+        rgbIntensityInput.value = savedIntensity;
+        setRgb(savedColor, parseInt(savedIntensity, 10));
         setTheme(savedTheme);
 
         function computeProtein(weight, activity) {
